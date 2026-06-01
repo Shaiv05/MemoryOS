@@ -1,59 +1,50 @@
 import api from "./api";
+import type {
+  CreateDocumentInput,
+  Document,
+  DocumentSearchResult,
+} from "@/types/document";
 
-export const getDocuments = async (token: string) => {
-  const res = await api.get("/documents/", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
+export const getDocuments = async () => {
+  const res = await api.get<Document[]>("/documents/");
   return res.data;
 };
 
-export const createDocument = async (
-  token: string,
-  data: {
-    title: string;
-    file_type: string;
-    raw_text: string;
+export const createDocument = async (input: CreateDocumentInput) => {
+  if (input.file) {
+    const formData = new FormData();
+    formData.append("title", input.title);
+    formData.append("file_type", input.fileType);
+    formData.append("file", input.file);
+    if (input.rawText) formData.append("raw_text", input.rawText);
+    if (input.sourceUrl) formData.append("source_url", input.sourceUrl);
+
+    const res = await api.post<Document>("/documents/", formData);
+    return res.data;
   }
-) => {
-  const res = await api.post("/documents/", data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+
+  const res = await api.post<Document>("/documents/", {
+    title: input.title,
+    file_type: input.fileType,
+    raw_text: input.rawText ?? "",
+    source_url: input.sourceUrl ?? "",
   });
 
   return res.data;
 };
 
-export const deleteDocument = async (
-  token: string,
-  id: number
-) => {
-  return api.delete(`/documents/${id}/`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const deleteDocument = async (id: number) => {
+  return api.delete(`/documents/${id}/`);
 };
 
+export const reprocessDocument = async (id: number) => {
+  const res = await api.post<Document>(`/documents/${id}/process/`);
+  return res.data;
+};
 
-export const uploadDocument = async (
-  token: string,
-  formData: FormData
-) => {
-  const res = await api.post(
-    "/documents/",
-    formData,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type":
-          "multipart/form-data",
-      },
-    }
-  );
-
+export const searchDocuments = async (query: string) => {
+  const res = await api.get<DocumentSearchResult[]>("/documents/search/", {
+    params: { q: query },
+  });
   return res.data;
 };

@@ -1,9 +1,12 @@
-from rest_framework import generics, permissions
+from django.shortcuts import get_object_or_404
+from rest_framework import generics, permissions, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from .models import Document
-from .serializers import DocumentSerializer
-
-from .utils import extract_pdf_text
+from .selectors import documents_for_user
+from .serializers import DocumentSearchResultSerializer, DocumentSerializer
+from .services.processing import process_document
+from .services.retrieval import search_document_chunks
 
 
 class DocumentListCreateView(generics.ListCreateAPIView):
@@ -11,24 +14,11 @@ class DocumentListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Document.objects.filter(owner=self.request.user).order_by("-created_at")
+        return documents_for_user(self.request.user).order_by("-created_at")
 
     def perform_create(self, serializer):
-        Document = serializer.save(
-            owner=self.request.user
-        )
-
-    if Document.file:
-        try:
-            extracted_text = extract_pdf_text(
-                Document.file.path
-            )
-
-            Document.raw_text = extracted_text
-            Document.save()
-
-        except Exception:
-            pass
+        document = serializer.save(owner=self.request.user)
+        process_document(document)
 
 
 class DocumentDetailView(generics.RetrieveDestroyAPIView):
@@ -36,4 +26,42 @@ class DocumentDetailView(generics.RetrieveDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Document.objects.filter(owner=self.request.user)
+        return documents_for_user(self.request.user)
+
+
+class DocumentProcessView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        document = get_object_or_404(documents_for_user(request.user), pk=pk)
+        process_document(document)
+        serializer = DocumentSerializer(document, context={"request": request})
+        return Response(serializer.data)
+
+
+class DocumentSearchView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        query = request.query_params.get("q", "")
+        try:
+            limit = min(int(request.query_params.get("limit", 5)), 20)
+        except ValueError:
+            return Response(
+                {"detail": "limit must be an integer."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        chunks = search_document_chunks(request.user, query, limit=limit)
+        results = [
+            {
+                "document_id": chunk.document_id,
+                "document_title": chunk.document.title,
+                "chunk_id": chunk.id,
+                "chunk_index": chunk.chunk_index,
+                "content": chunk.content,
+                "score": float(chunk.score),
+            }
+            for chunk in chunks
+        ]
+        serializer = DocumentSearchResultSerializer(results, many=True)
+        return Response(serializer.data)

@@ -1,16 +1,3 @@
-from pypdf import PdfReader
+from .services.extraction import extract_document_text, extract_pdf_text
 
-
-def extract_pdf_text(file_path):
-    text = ""
-
-    reader = PdfReader(file_path)
-
-    for page in reader.pages:
-        page_text = page.extract_text()
-
-        if page_text:
-            text += page_text + "\n"
-
-    return text
-    
+__all__ = ["extract_document_text", "extract_pdf_text"]

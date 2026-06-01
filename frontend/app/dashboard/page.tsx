@@ -1,37 +1,44 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Sidebar from "@/components/layout/Sidebar";
+import { useAuth } from "@/hooks/useAuth";
+import { getDashboardSummary } from "@/services/dashboard";
+import type { DashboardSummary } from "@/types/dashboard";
+
+const emptySummary: DashboardSummary = {
+  documents: 0,
+  completed_documents: 0,
+  failed_documents: 0,
+  chunks: 0,
+};
 
 export default function DashboardPage() {
-  const router = useRouter();
-
-  const [ready, setReady] = useState<boolean | null>(null);
+  const { token } = useAuth({ required: true });
+  const [summary, setSummary] = useState<DashboardSummary>(emptySummary);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    if (!token) return;
 
-    if (!token) {
-      router.push("/login");
-      setReady(false);
-      return;
-    }
+    let ignore = false;
+    getDashboardSummary()
+      .then((data) => {
+        if (!ignore) {
+          setSummary(data);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!ignore) setLoading(false);
+      });
 
-    setReady(true);
-  }, [router]);
+    return () => {
+      ignore = true;
+    };
+  }, [token]);
 
-  if (ready === null) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-black text-white">
-        Loading...
-      </div>
-    );
-  }
-
-  if (!ready) {
-    return null;
-  }
+  if (!token) return null;
 
   return (
     <div className="flex min-h-screen bg-black text-white">
@@ -44,32 +51,46 @@ export default function DashboardPage() {
           </h1>
 
           <p className="mt-3 max-w-2xl text-zinc-400">
-            Your private AI knowledge operating system. This is the foundation
-            for document upload, semantic search, and RAG chat.
+            Your private AI knowledge operating system for document ingestion,
+            semantic search, and grounded RAG.
           </p>
 
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
+          <div className="mt-10 grid gap-4 md:grid-cols-4">
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
               <p className="text-sm text-zinc-400">Documents</p>
-              <p className="mt-2 text-3xl font-semibold">0</p>
+              <p className="mt-2 text-3xl font-semibold">
+                {loading ? "..." : summary.documents}
+              </p>
             </div>
 
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
-              <p className="text-sm text-zinc-400">Chats</p>
-              <p className="mt-2 text-3xl font-semibold">0</p>
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+              <p className="text-sm text-zinc-400">Completed</p>
+              <p className="mt-2 text-3xl font-semibold">
+                {loading ? "..." : summary.completed_documents}
+              </p>
             </div>
 
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
-              <p className="text-sm text-zinc-400">Collections</p>
-              <p className="mt-2 text-3xl font-semibold">0</p>
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+              <p className="text-sm text-zinc-400">Chunks</p>
+              <p className="mt-2 text-3xl font-semibold">
+                {loading ? "..." : summary.chunks}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+              <p className="text-sm text-zinc-400">Failed</p>
+              <p className="mt-2 text-3xl font-semibold">
+                {loading ? "..." : summary.failed_documents}
+              </p>
             </div>
           </div>
 
-          <div className="mt-8 rounded-2xl border border-dashed border-zinc-800 bg-zinc-950 p-8">
-            <h2 className="text-xl font-medium">Next phase</h2>
+          <div className="mt-8 rounded-lg border border-dashed border-zinc-800 bg-zinc-950 p-8">
+            <h2 className="text-xl font-medium">Current phase</h2>
 
             <p className="mt-2 text-zinc-400">
-              Add document upload, text extraction, embeddings, and AI chat.
+              Stabilize document extraction, chunking, embeddings, and vector
+              search before expanding chat behavior.
             </p>
           </div>
         </div>

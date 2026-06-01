@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser } from "@/services/auth";
+import { setTokens } from "@/lib/token-storage";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,8 +27,7 @@ export default function LoginPage() {
 
     try {
       const data = await loginUser({ username, password });
-      localStorage.setItem("accessToken", data.access);
-      localStorage.setItem("refreshToken", data.refresh);
+      setTokens(data.access, data.refresh);
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(getLoginError(err));

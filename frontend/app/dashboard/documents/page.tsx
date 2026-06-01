@@ -1,140 +1,123 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Sidebar from "@/components/layout/Sidebar";
+import DocumentForm from "@/components/documents/DocumentForm";
+import DocumentList from "@/components/documents/DocumentList";
+import { useAuth } from "@/hooks/useAuth";
 import {
-  getDocuments,
   createDocument,
   deleteDocument,
+  getDocuments,
+  reprocessDocument,
 } from "@/services/documents";
+import type { CreateDocumentInput, Document } from "@/types/document";
 
-type DocumentType = {
-  id: number;
-  title: string;
-  file_type: string;
-  raw_text: string;
+const getErrorMessage = (error: unknown) => {
+  const response = (
+    error as {
+      response?: { data?: { detail?: string; non_field_errors?: string[] } };
+    }
+  ).response;
+
+  return (
+    response?.data?.detail ||
+    response?.data?.non_field_errors?.[0] ||
+    "Document action failed."
+  );
 };
 
 export default function DocumentsPage() {
-  const [documents, setDocuments] = useState<DocumentType[]>([]);
-  const [title, setTitle] = useState("");
-  const [rawText, setRawText] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const { token } = useAuth({ required: true });
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("accessToken")
-      : null;
-
-  const loadDocuments = async () => {
-    if (!token) return;
-
-    const data = await getDocuments(token);
-    setDocuments(data);
-    setLoading(false);
-  };
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    loadDocuments();
-  }, []);
-
-const handleCreate = async () => {
-  if (!token || !title || (!file && !rawText)) return;
-
-  const payload = {
-    title,
-    file_type: file ? "pdf" : "note",
-    raw_text: file ? "" : rawText,
-  };
-
-  await createDocument(token, payload);
-
-  setTitle("");
-  setRawText("");
-  setFile(null);
-
-  loadDocuments();
-};
-
-  const handleDelete = async (id: number) => {
     if (!token) return;
 
-    await deleteDocument(token, id);
+    let ignore = false;
+    getDocuments()
+      .then((data) => {
+        if (!ignore) {
+          setDocuments(data);
+          setLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!ignore) {
+          setError(getErrorMessage(err));
+          setLoading(false);
+        }
+      });
 
-    loadDocuments();
+    return () => {
+      ignore = true;
+    };
+  }, [token, refreshKey]);
+
+  const refreshDocuments = () => {
+    setLoading(true);
+    setRefreshKey((current) => current + 1);
   };
 
+  const handleCreate = async (input: CreateDocumentInput) => {
+    setSaving(true);
+    setError("");
+
+    try {
+      await createDocument(input);
+      refreshDocuments();
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    setError("");
+    await deleteDocument(id);
+    refreshDocuments();
+  };
+
+  const handleReprocess = async (id: number) => {
+    setError("");
+    await reprocessDocument(id);
+    refreshDocuments();
+  };
+
+  if (!token) return null;
+
   return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <h1 className="text-4xl font-bold mb-8">
-        Documents
-      </h1>
+    <div className="flex min-h-screen bg-black text-white">
+      <Sidebar />
 
-      <div className="border border-zinc-800 rounded-xl p-6 mb-8">
-        <input
-          className="w-full mb-4 bg-zinc-900 p-3 rounded"
-          placeholder="Document title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
+      <main className="flex-1 p-8">
+        <div className="max-w-5xl">
+          <h1 className="mb-8 text-4xl font-bold">Documents</h1>
 
-        <textarea
-          className="w-full mb-4 bg-zinc-900 p-3 rounded"
-          placeholder="Write notes..."
-          rows={5}
-          value={rawText}
-          onChange={(e) => setRawText(e.target.value)}
-        />
+          <DocumentForm onSubmit={handleCreate} loading={saving} />
 
-        <input
-        type="file"
-        onChange={(e) =>
-          setFile(
-            e.target.files?.[0] || null
-          )   
-        }
-        className="mb-4"
-        />
+          {error && (
+            <p className="mb-6 rounded border border-red-900/60 bg-red-950/60 p-3 text-sm text-red-300">
+              {error}
+            </p>
+          )}
 
-        <button
-          onClick={handleCreate}
-          className="bg-white text-black px-4 py-2 rounded"
-        >
-          Save Note
-        </button>
-      </div>
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : documents.length === 0 ? (
-        <p>No documents yet.</p>
-      ) : (
-        <div className="space-y-4">
-          {documents.map((doc) => (
-            <div
-              key={doc.id}
-              className="border border-zinc-800 rounded-xl p-4"
-            >
-              <h2 className="font-bold text-lg">
-                {doc.title}
-              </h2>
-
-              <p className="text-zinc-400 mt-2">
-                {doc.raw_text}
-              </p>
-
-              <button
-                onClick={() =>
-                  handleDelete(doc.id)
-                }
-                className="mt-4 bg-red-600 px-3 py-1 rounded"
-              >
-                Delete
-              </button>
-            </div>
-          ))}
+          {loading ? (
+            <p className="text-zinc-400">Loading...</p>
+          ) : (
+            <DocumentList
+              documents={documents}
+              onDelete={handleDelete}
+              onReprocess={handleReprocess}
+            />
+          )}
         </div>
-      )}
+      </main>
     </div>
   );
 }

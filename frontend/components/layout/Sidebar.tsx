@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   FileText,
@@ -9,10 +9,11 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Sidebar() {
-  const router = useRouter();
   const pathname = usePathname();
+  const { logout } = useAuth();
 
   const linkClass = (href: string) => {
     const active = pathname === href;
@@ -21,12 +22,6 @@ export default function Sidebar() {
         ? "bg-zinc-900 text-zinc-100"
         : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
     }`;
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    router.push("/login");
   };
 
   return (
@@ -47,13 +42,10 @@ export default function Sidebar() {
           Documents
         </Link>
 
-        <a
-          href="#"
-          className="flex items-center gap-3 rounded-xl px-4 py-3 text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-100"
-        >
+        <Link href="/dashboard/chat" className={linkClass("/dashboard/chat")}>
           <MessageSquare className="h-4 w-4" />
           Chats
-        </a>
+        </Link>
 
         <a
           href="#"
@@ -65,7 +57,7 @@ export default function Sidebar() {
       </nav>
 
       <button
-        onClick={handleLogout}
+        onClick={logout}
         className="mt-auto flex items-center gap-3 rounded-xl border border-zinc-800 px-4 py-3 text-sm text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
       >
         <LogOut className="h-4 w-4" />
