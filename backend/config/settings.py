@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "chat",
     "dashboard",
     "documents",
+    "search",
 ]
 
 MIDDLEWARE = [
@@ -97,10 +98,11 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
-
 MAX_DOCUMENT_UPLOAD_SIZE = int(os.getenv("MAX_DOCUMENT_UPLOAD_SIZE", str(10 * 1024 * 1024)))
-DOCUMENT_CHUNK_SIZE = int(os.getenv("DOCUMENT_CHUNK_SIZE", "1000"))
-DOCUMENT_CHUNK_OVERLAP = int(os.getenv("DOCUMENT_CHUNK_OVERLAP", "150"))
+DOCUMENT_CHUNK_SIZE = int(os.getenv("DOCUMENT_CHUNK_SIZE", "250"))
+DOCUMENT_CHUNK_OVERLAP = int(os.getenv("DOCUMENT_CHUNK_OVERLAP", "50"))
+
+
 EMBEDDING_MODEL_NAME = os.getenv(
     "EMBEDDING_MODEL_NAME",
     "sentence-transformers/all-MiniLM-L6-v2",

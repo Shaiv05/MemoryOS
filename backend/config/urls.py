@@ -11,6 +11,7 @@ urlpatterns = [
     path("api/chat/", include("chat.urls")),
     path("api/dashboard/", include("dashboard.urls")),
     path("api/documents/", include("documents.urls")),
+    path("api/search/", include("search.urls")),
 ]
 
 if settings.DEBUG:

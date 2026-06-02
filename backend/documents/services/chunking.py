@@ -4,8 +4,11 @@ from documents.models import DocumentChunk
 
 
 def chunk_text(text, chunk_size=None, overlap=None):
-    normalized = " ".join(text.split())
-    if not normalized:
+    if not text:
+        return []
+
+    words = text.split()
+    if not words:
         return []
 
     size = chunk_size or settings.DOCUMENT_CHUNK_SIZE
@@ -16,10 +19,10 @@ def chunk_text(text, chunk_size=None, overlap=None):
     chunks = []
     start = 0
 
-    while start < len(normalized):
-        end = min(start + size, len(normalized))
-        chunks.append(normalized[start:end].strip())
-        if end == len(normalized):
+    while start < len(words):
+        end = min(start + size, len(words))
+        chunks.append(" ".join(words[start:end]))
+        if end == len(words):
             break
         start = max(0, end - overlap_size)
 

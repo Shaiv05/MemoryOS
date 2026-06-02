@@ -1,0 +1,4 @@
+{
+    "python.defaultInterpreterPath": "MemoryOS/backend/venv/bin/python",
+    "python.terminal.activateEnvironment": true
+}
