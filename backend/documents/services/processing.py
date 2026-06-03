@@ -6,6 +6,7 @@ from documents.models import Document, DocumentChunk
 from .chunking import chunk_text, replace_document_chunks
 from .embeddings import embed_chunks
 from .extraction import extract_document_text
+from graph.services import process_document_for_graph
 
 
 def process_document(document):
@@ -28,6 +29,12 @@ def process_document(document):
 
         chunk_queryset = DocumentChunk.objects.filter(document=document).order_by("chunk_index")
         embed_chunks(chunk_queryset)
+        
+        # Phase 7: Knowledge Graph Extraction
+        try:
+            process_document_for_graph(document.owner, document)
+        except Exception as graph_err:
+            print(f"Graph extraction failed for document {document.id}: {graph_err}")
 
         document.processing_status = Document.PROCESSING_COMPLETED
         document.processing_error = ""

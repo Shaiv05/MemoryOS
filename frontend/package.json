@@ -3,15 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@xyflow/react": "^12.11.0",
+    "@xyflow/system": "^0.0.77",
     "axios": "^1.16.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.40.0",
+    "lightningcss": "^1.32.0",
     "lucide-react": "^1.16.0",
     "next": "16.2.6",
     "react": "19.2.4",
