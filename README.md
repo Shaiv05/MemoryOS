@@ -1,35 +1,33 @@
 <div align="center">
 
 <!-- Animated Banner -->
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=🧠%20MemoryOS&fontSize=60&fontColor=fff&animation=twinkling&fontAlignY=35&desc=Your%20Personal%20Intelligence%20Layer&descAlignY=60&descSize=20" width="100%"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=🧠%20MemoryOS&fontSize=60&fontColor=fff&animation=twinkling&fontAlignY=35&desc=Your%20Personal%20Knowledge%20Operating%20System&descAlignY=60&descSize=20" width="100%"/>
 
 <!-- Badges Row -->
 <p align="center">
-  <img src="https://img.shields.io/badge/Status-🚧%20In%20Development-orange?style=for-the-badge&labelColor=1a1a2e" />
-  <img src="https://img.shields.io/badge/Version-0.1.0--alpha-blueviolet?style=for-the-badge&labelColor=1a1a2e" />
+  <img src="https://img.shields.io/badge/Status-🚀%20V1.0%20Complete-emerald?style=for-the-badge&labelColor=1a1a2e" />
+  <img src="https://img.shields.io/badge/Version-1.0.0-blueviolet?style=for-the-badge&labelColor=1a1a2e" />
   <img src="https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge&labelColor=1a1a2e" />
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" />
   <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
-  <img src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" />
-  <img src="https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white" />
+  <img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" />
 </p>
 
 <br/>
 
-> ### 🌟 *"Don't just store information — understand it."*
-> #### An AI-powered knowledge management system that thinks, connects, and remembers **for you**.
+> ### 🌟 *"Don't just store information — connect it."*
+> #### A complete AI-powered knowledge management system that extracts, remembers, and visualizes **for you**.
 
 <br/>
 
-<!-- Animated GIF Placeholder (replace with actual demo) -->
-
 ```
   ╔══════════════════════════════════════════════╗
-  ║   🔮  Capture  →  🔗  Connect  →  💡  Recall  ║
+  ║   🔮  Ingest  →  🔗  Graph  →  🛠️  Execute   ║
   ╚══════════════════════════════════════════════╝
 ```
 
@@ -37,79 +35,79 @@
 
 ---
 
-## 🚧 Development Status
+## ✅ Project Status
 
 <div align="center">
 
-> ### ⚠️ **This project is actively under development!**
-> Features may be incomplete, APIs may change, and things might break.
-> We're building something extraordinary — come back soon or **contribute now!** 🛠️
+> ### 🎉 **Core Phases 1-10 are fully operational!**
+> MemoryOS has transitioned from a document chatbot into a full-scale Productivity & Knowledge OS.
 
 | Module | Status |
 |--------|--------|
-| 🔐 Auth System | ✅ In Progress |
-| 📝 Note Ingestion | 🔄 Building |
-| 🤖 AI Processing | 🔄 Building |
-| 🔍 Semantic Search | ⏳ Planned |
-| 🗺️ Knowledge Graph | ⏳ Planned |
-| 📱 Mobile UI | ⏳ Planned |
+| 🔐 Advanced Auth | ✅ Complete |
+| 📄 RAG Document Engine | ✅ Complete |
+| 💬 Grounded AI Chat | ✅ Complete |
+| 🧠 Memory Fact System | ✅ Complete |
+| 🗺️ Knowledge Graph | ✅ Complete |
+| 🚀 Productivity Suite | ✅ Complete |
+| 🐳 Docker & CI/CD | ✅ Complete |
 
 </div>
 
 ---
 
-## 🧠 What is AI Second Brain?
+## 🧠 What is MemoryOS?
 
-**AI Second Brain** is a next-generation knowledge management platform that acts as an **external cognitive layer** — storing, linking, and surfacing your ideas, notes, and knowledge at exactly the right moment.
+**MemoryOS** is a next-generation personal intelligence layer. It doesn't just store your files; it understands the relationships between your documents, identifies key entities, and manages your daily productivity through AI-driven insights.
 
-Think **Notion** meets **ChatGPT** meets **your own mind** — but smarter. 🔥
+Think **Obsidian** meets **ChatGPT** with a built-in **Task Manager** — all grounded in your own private data. 🔥
 
 ```
-You think it  →  You capture it  →  AI understands it  →  You find it instantly
+Upload Docs  →  Extract Entities  →  Build Knowledge Graph  →  Generate Daily Summaries
 ```
 
 ---
 
-## ✨ Planned Features
+## ✨ Core Features
 
 <table>
 <tr>
 <td width="50%">
 
-### 📥 Capture Everything
-- 📝 Notes, ideas, and snippets
-- 🔗 Save links with AI summaries
-- 📄 Upload PDFs & documents
-- 🎙️ Voice-to-text input
+### 📥 Intelligence Ingestion
+- 📄 PDF, TXT, and DOCX support
+- 🧩 Intelligent text chunking
+- ⚡ Vector embeddings (pgvector)
+- 🤖 Semantic retrieval
 
 </td>
 <td width="50%">
 
-### 🤖 AI-Powered Understanding
-- 🧩 Automatic tagging & categorization
-- 🔗 Smart concept linking
+### 💬 Document Interaction
 - 💬 Chat with your knowledge base
-- 📊 Insight extraction
+- 📍 Precise source citations (S1, S2...)
+- 🧠 Autonomous memory extraction
+- 🔄 Conversation persistence
 
 </td>
 </tr>
 <tr>
 <td width="50%">
 
-### 🔍 Recall Instantly
-- ⚡ Semantic search (not just keyword)
-- 🗺️ Visual knowledge graph
-- 📅 Spaced repetition reminders
-- 🎯 Context-aware suggestions
+### 🗺️ Knowledge Mapping
+- 🌐 Interactive Knowledge Graph
+- 👥 Entity extraction (People, Projects)
+- 🔗 Relationship visualization
+- 🔍 Deep-dive node details
 
 </td>
 <td width="50%">
 
-### 🔐 Private & Secure
-- 🔒 Your data, your control
-- 🛡️ End-to-end encryption (planned)
-- 🌐 Self-hostable
-- 📦 Export anytime
+### 🛠️ Productivity Layer
+- 📝 AI-linked Personal Notes
+- 🏁 Task Management (Pending/Done)
+- 🎯 Goal Tracking with Progress bars
+- 📊 Daily AI Focus Summaries
 
 </td>
 </tr>
@@ -122,16 +120,19 @@ You think it  →  You capture it  →  AI understands it  →  You find it inst
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    🖥️  FRONTEND                          │
-│         TypeScript  •  React  •  Tailwind CSS            │
+│         Next.js 14+  •  TypeScript  •  Tailwind CSS      │
+│         Framer Motion  •  React Flow (Graph)             │
 ├─────────────────────────────────────────────────────────┤
 │                    ⚙️  BACKEND (API)                      │
-│         Node.js  •  Express  •  TypeScript               │
+│         Python 3.11  •  Django  •  DRF                   │
+│         JWT Auth  •  DRF Throttling (Security)           │
 ├─────────────────────────────────────────────────────────┤
 │                    🤖  AI ENGINE                         │
-│         Python  •  LangChain / LlamaIndex  •  OpenAI     │
+│         OpenAI API  •  Sentence-Transformers             │
+│         RAG Pipeline  •  Entity Extraction               │
 ├─────────────────────────────────────────────────────────┤
 │                    🗄️  DATABASE                          │
-│         MongoDB  •  Pinecone / ChromaDB (Vector)         │
+│         PostgreSQL  •  pgvector (Vector Store)           │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -140,84 +141,50 @@ You think it  →  You capture it  →  AI understands it  →  You find it inst
 ## 📁 Project Structure
 
 ```bash
-ai-second-brain/
-├── 🖥️  frontend/          # React + TypeScript UI
-│   ├── src/
-│   │   ├── components/    # Reusable UI components
-│   │   ├── pages/         # App pages/routes
-│   │   ├── hooks/         # Custom React hooks
-│   │   └── services/      # API integrations
-│   └── package.json
+MemoryOS/
+├── 🖥️  frontend/          # Next.js App Router UI
+│   ├── app/               # Pages & Dashboard routes
+│   ├── components/        # UI, Chat, Memory, Graph units
+│   ├── services/          # API layer (Axios)
+│   └── types/             # TypeScript definitions
 │
-├── ⚙️  backend/           # Node.js + Python services
-│   ├── api/               # REST API (TypeScript)
-│   ├── ai-engine/         # AI processing (Python)
-│   └── models/            # Database models
+├── ⚙️  backend/           # Django REST Framework
+│   ├── chat/              # RAG & Conversation logic
+│   ├── graph/             # Entity & Edge extraction
+│   ├── productivity/      # Notes, Tasks, & Goals
+│   ├── documents/         # Processing & Embeddings
+│   └── config/            # Core Django settings
 │
-└── 📄  README.md
+├── 🐳  Dockerfile         # Container configs
+└── 📄  docker-compose.yml # Orchestration stack
 ```
 
 ---
 
 ## 🚀 Getting Started
 
-> ⚠️ **Note:** Setup instructions are evolving as development progresses.
-
 ### Prerequisites
 
-```bash
-node >= 18.x
-python >= 3.10
-mongodb >= 6.x
-```
+- **Docker** and **Docker Compose**
+- **OpenAI API Key**
 
-### Installation
+### Installation & Run
+
+The entire stack is containerized for a single-command setup.
 
 ```bash
 # 1️⃣ Clone the repository
-git clone https://github.com/Shaiv05/ai-second-brain.git
-cd ai-second-brain
+git clone https://github.com/Shaiv05/MemoryOS.git
+cd MemoryOS
 
-# 2️⃣ Install frontend dependencies
-cd frontend
-npm install
+# 2️⃣ Configure Environment
+# Add your OPENAI_API_KEY to docker-compose.yml or a .env file
 
-# 3️⃣ Install backend dependencies
-cd ../backend
-npm install
-
-# 4️⃣ Set up Python AI engine
-pip install -r requirements.txt
-
-# 5️⃣ Configure environment variables
-cp .env.example .env
-# Fill in your API keys and DB connection
+# 3️⃣ Launch the OS
+docker-compose up --build
 ```
 
-### Running the App
-
-```bash
-# Start frontend
-cd frontend && npm run dev
-
-# Start backend API
-cd backend && npm run dev
-
-# Start AI engine
-cd backend/ai-engine && python main.py
-```
-
----
-
-## 🗺️ Roadmap
-
-```
-2025 Q1  ✅  Project Setup & Architecture Design
-2025 Q2  🔄  Core Note CRUD + Auth System          ← We are here
-2025 Q3  ⏳  AI Processing Pipeline
-2025 Q4  ⏳  Semantic Search + Knowledge Graph
-2026 Q1  ⏳  Mobile App + Public Beta
-```
+Access the app at `http://localhost:3000` and the API at `http://localhost:8000`.
 
 ---
 
@@ -227,12 +194,10 @@ We **welcome contributions** at every level! 🎉
 
 ```bash
 # Fork → Clone → Create branch → Make changes → PR!
-git checkout -b feature/your-amazing-feature
-git commit -m "✨ Add amazing feature"
-git push origin feature/your-amazing-feature
+git checkout -b feature/amazing-improvement
+git commit -m "✨ Implement smart connection"
+git push origin feature/amazing-improvement
 ```
-
-Please read our [Contributing Guidelines](CONTRIBUTING.md) *(coming soon)* before submitting a PR.
 
 ---
 
@@ -242,7 +207,7 @@ Please read our [Contributing Guidelines](CONTRIBUTING.md) *(coming soon)* befor
 
 [![GitHub](https://img.shields.io/badge/GitHub-Shaiv05-181717?style=for-the-badge&logo=github)](https://github.com/Shaiv05)
 
-💡 *Found a bug? Have a feature idea? Open an [issue](https://github.com/Shaiv05/ai-second-brain/issues)!*
+💡 *Found a bug? Have a feature idea? Open an [issue](https://github.com/Shaiv05/MemoryOS/issues)!*
 
 </div>
 
@@ -250,7 +215,7 @@ Please read our [Contributing Guidelines](CONTRIBUTING.md) *(coming soon)* befor
 
 ## 📜 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License**.
 
 ---
 
@@ -261,7 +226,5 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 **⭐ Star this repo if you believe in building a smarter second brain!**
 
 *Made with 🧠 + ❤️ by [Shaiv05](https://github.com/Shaiv05)*
-
-`Still cooking... 🍳 but the recipe is going to be 🔥`
 
 </div>
