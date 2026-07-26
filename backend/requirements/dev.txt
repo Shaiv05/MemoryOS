@@ -1,0 +1,20 @@
+-r base.txt
+
+# Development
+black
+ruff
+isort
+
+# Testing
+pytest
+pytest-django
+pytest-cov
+
+# Type Checking
+mypy
+
+# Better shell
+ipython
+
+# Debugging
+django-extensions
