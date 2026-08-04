@@ -91,10 +91,38 @@ class DocumentSearchResultSerializer(serializers.Serializer):
     content = serializers.CharField()
     document_id = serializers.IntegerField(source="document.id")
     document_title = serializers.CharField(source="document.title")
+    file_type = serializers.CharField(source="document.file_type")
+    page_number = serializers.SerializerMethodField()
+    section = serializers.SerializerMethodField()
     similarity_score = serializers.SerializerMethodField()
+    vector_score = serializers.SerializerMethodField()
+    keyword_score = serializers.SerializerMethodField()
+
+    def get_page_number(self, obj):
+        meta = obj.metadata or {}
+        val = meta.get("page_number") or meta.get("page")
+        if val is not None:
+            try:
+                return int(val)
+            except (ValueError, TypeError):
+                pass
+        return None
+
+    def get_section(self, obj):
+        meta = obj.metadata or {}
+        return meta.get("section") or meta.get("heading") or ""
 
     def get_similarity_score(self, obj):
+        rel = getattr(obj, "relevance_score", None)
+        if rel is not None:
+            return float(rel)
         score = getattr(obj, "score", None)
         if score is not None:
             return max(0.0, min(1.0, 1.0 - float(score)))
         return 0.0
+
+    def get_vector_score(self, obj):
+        return getattr(obj, "vector_score", 0.0)
+
+    def get_keyword_score(self, obj):
+        return getattr(obj, "keyword_score", 0.0)

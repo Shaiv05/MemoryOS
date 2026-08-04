@@ -1,11 +1,13 @@
 import json
 import logging
 import os
+import time
 
+from django.conf import settings
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 
-from documents.services.retrieval import retrieve_document_chunks
+from documents.services.retrieval import DocumentRetrievalService
 from memory.services import create_memory_entry
 
 from .context import ContextBuilder, build_history_context, truncate_text
@@ -15,7 +17,7 @@ from .providers import get_ai_provider
 logger = logging.getLogger(__name__)
 
 MAX_CONTEXT_CHUNKS = 5
-MAX_HISTORY_MESSAGES = 8
+MAX_HISTORY_MESSAGES = 6
 
 
 def get_owned_conversation(user, conversation_id):
@@ -40,14 +42,19 @@ def get_recent_history(conversation):
 
 
 def source_to_dict(source):
+    metadata = {}
+    if source.document_chunk:
+        metadata = source.document_chunk.metadata or {}
+
     return {
         "document_id": source.document_id,
         "document_title": source.document.title,
         "chunk_id": source.document_chunk_id,
-        "chunk_index": source.document_chunk.chunk_index,
-        "page_number": source.page_number,
-        "content": source.preview,
-        "preview": source.preview,
+        "chunk_index": source.document_chunk.chunk_index if source.document_chunk else 0,
+        "page_number": source.page_number or metadata.get("page_number"),
+        "section": metadata.get("section") or metadata.get("heading") or "",
+        "content": truncate_text(source.preview, 200),
+        "preview": truncate_text(source.preview, 200),
         "score": source.relevance_score,
         "similarity_score": source.relevance_score,
         "relevance_score": source.relevance_score,
@@ -69,13 +76,10 @@ def serialize_chunk_sources(chunks):
     for chunk in chunks:
         distance = getattr(chunk, "score", None)
         relevance_score = max(0.0, min(1.0, 1.0 - float(distance))) if distance is not None else 0.0
-        page_number = None
         metadata = chunk.metadata or {}
-        if metadata.get("page_number") or metadata.get("page"):
-            try:
-                page_number = int(metadata.get("page_number") or metadata.get("page"))
-            except (TypeError, ValueError):
-                page_number = None
+        page_number = metadata.get("page_number")
+        section = metadata.get("section") or metadata.get("heading") or ""
+
         sources.append(
             {
                 "document_id": chunk.document_id,
@@ -83,8 +87,9 @@ def serialize_chunk_sources(chunks):
                 "chunk_id": chunk.id,
                 "chunk_index": chunk.chunk_index,
                 "page_number": page_number,
-                "content": truncate_text(chunk.content, 1800),
-                "preview": truncate_text(chunk.content, 1800),
+                "section": section,
+                "content": truncate_text(chunk.content, 200),
+                "preview": truncate_text(chunk.content, 200),
                 "score": relevance_score,
                 "similarity_score": relevance_score,
                 "relevance_score": relevance_score,
@@ -105,7 +110,7 @@ def persist_sources(message, context_sources):
                 document_chunk_id=source.chunk_id,
                 page_number=source.page_number,
                 relevance_score=source.relevance_score,
-                preview=truncate_text(source.content, 1800),
+                preview=truncate_text(source.content, 200),
             )
         )
     if source_models:
@@ -116,7 +121,7 @@ def persist_sources(message, context_sources):
 
 
 @transaction.atomic
-def chat_with_documents(user, message, conversation_id=None):
+def chat_with_documents(user, message, conversation_id=None, return_debug=False):
     conversation = get_or_create_conversation(user, message, conversation_id)
     history = get_recent_history(conversation)
 
@@ -126,15 +131,41 @@ def chat_with_documents(user, message, conversation_id=None):
         content=message,
     )
 
-    return generate_assistant_response(user, conversation, user_message, history)
+    return generate_assistant_response(
+        user, conversation, user_message, history, return_debug=return_debug
+    )
 
 
-def generate_assistant_response(user, conversation, user_message, history):
+def generate_assistant_response(
+    user, conversation, user_message, history, return_debug=False
+):
     from memory.models import MemoryEntry
-    retrieval_results = retrieve_document_chunks(user, user_message.content, limit=MAX_CONTEXT_CHUNKS)
-    user_memories = list(MemoryEntry.objects.filter(owner=user).order_by("-is_pinned", "-updated_at")[:5])
+
+    start_time = time.time()
+    debug_requested = return_debug or getattr(settings, "RAG_DEBUG", False)
+
+    # 1. Retrieve hybrid chunks with optional debug metrics
+    retrieval_service = DocumentRetrievalService()
+    if debug_requested:
+        retrieval_results, debug_info = retrieval_service.retrieve(
+            user, user_message.content, limit=MAX_CONTEXT_CHUNKS, return_debug=True
+        )
+    else:
+        retrieval_results = retrieval_service.retrieve(
+            user, user_message.content, limit=MAX_CONTEXT_CHUNKS
+        )
+        debug_info = None
+
+    # 2. Retrieve user long-term memories
+    user_memories = list(
+        MemoryEntry.objects.filter(owner=user).order_by("-is_pinned", "-updated_at")[:3]
+    )
+
+    # 3. Compress & deduplicate context
     built_context = ContextBuilder().build(retrieval_results, memories=user_memories)
     history_context = build_history_context(history)
+
+    # 4. Generate AI response
     provider = get_ai_provider()
     answer = provider.generate_response(
         question=user_message.content,
@@ -148,6 +179,7 @@ def generate_assistant_response(user, conversation, user_message, history):
             history="",
         )
 
+    # 5. Persist assistant message & sources
     assistant_message = Message.objects.create(
         conversation=conversation,
         role="assistant",
@@ -156,18 +188,36 @@ def generate_assistant_response(user, conversation, user_message, history):
     persist_sources(assistant_message, built_context.sources)
     conversation.save(update_fields=["updated_at"])
 
+    # 6. Autonomous memory extraction (non-blocking)
     try:
         extract_memory_from_exchange(user, user_message.content, answer)
     except Exception as exc:
         logger.warning("Autonomous memory extraction failed: %s", exc)
 
-    return {
+    elapsed_ms = round((time.time() - start_time) * 1000, 1)
+
+    result = {
         "conversation_id": conversation.id,
         "user_message_id": user_message.id,
         "message_id": assistant_message.id,
         "answer": answer,
         "sources": serialize_message_sources(assistant_message),
     }
+
+    # Expose Phase 16 Debug Information if enabled
+    if debug_requested and debug_info:
+        result["debug"] = {
+            "query": user_message.content,
+            "vector_results": debug_info.vector_results_count,
+            "keyword_results": debug_info.keyword_results_count,
+            "retrieval_time_ms": debug_info.retrieval_time_ms,
+            "total_time_ms": elapsed_ms,
+            "context_tokens_approx": built_context.total_tokens_approx,
+            "context_sources_used": built_context.source_count,
+            "candidates": debug_info.candidate_details,
+        }
+
+    return result
 
 
 @transaction.atomic

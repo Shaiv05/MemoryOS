@@ -1,42 +1,43 @@
-from django.conf import settings
+"""
+Chunk persistence helper.
+
+Bridges the chunker output (list of dicts) with the DocumentChunk model.
+"""
+
 from documents.models import DocumentChunk
-from .chunker import chunk_text as intelligent_chunk_text
-
-
-def chunk_text(text, chunk_size=None, overlap=None):
-    """Legacy wrapper for intelligent chunker, returns list of text strings."""
-    chunks = intelligent_chunk_text(text, chunk_size, overlap)
-    return [c["text"] for c in chunks]
+from .chunker import count_tokens
 
 
 def replace_document_chunks(document, chunks):
     """
     Replaces existing document chunks with new ones.
-    Accepts list of strings (legacy) or list of dicts (from intelligent chunker).
+    Accepts list of dicts (from semantic chunker) or list of strings (legacy).
+    Stores rich metadata from the chunker.
     """
-    import tiktoken
-
-    def get_token_count(t):
-        try:
-            encoding = tiktoken.get_encoding("cl100k_base")
-            return len(encoding.encode(t))
-        except Exception:
-            return len(t.split())
-
+    # Remove old chunks (cascade will clean up related MessageSource etc.)
     DocumentChunk.objects.filter(document=document).delete()
 
     chunk_objs = []
     for index, c in enumerate(chunks):
         if isinstance(c, dict):
             text = c["text"]
-            tok_cnt = c.get("token_count") or get_token_count(text)
+            tok_cnt = c.get("token_count") or count_tokens(text)
             char_cnt = c.get("char_count") or len(text)
             meta = c.get("metadata") or {}
+            # Enrich metadata with document-level info
+            meta["document_id"] = document.id
+            meta["document_name"] = document.title
+            meta["source_file"] = document.file.name if document.file else ""
+            meta["chunk_number"] = index
         else:
             text = c
-            tok_cnt = get_token_count(text)
+            tok_cnt = count_tokens(text)
             char_cnt = len(text)
-            meta = {}
+            meta = {
+                "document_id": document.id,
+                "document_name": document.title,
+                "chunk_number": index,
+            }
 
         chunk_objs.append(
             DocumentChunk(
@@ -49,4 +50,5 @@ def replace_document_chunks(document, chunks):
             )
         )
 
-    return DocumentChunk.objects.bulk_create(chunk_objs)
+    created = DocumentChunk.objects.bulk_create(chunk_objs)
+    return created

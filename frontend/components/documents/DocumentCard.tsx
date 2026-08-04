@@ -2,7 +2,17 @@
 
 import { useState } from "react";
 import type { Document } from "@/types/document";
-import { Clock, FileText, Layers, HardDrive, RefreshCw, Trash2, ShieldAlert } from "lucide-react";
+import {
+  Clock,
+  FileText,
+  Layers,
+  HardDrive,
+  RefreshCw,
+  Trash2,
+  ShieldAlert,
+  CheckSquare,
+  Square,
+} from "lucide-react";
 
 const statusClass: Record<Document["processing_status"], string> = {
   queued: "border-amber-500/30 bg-amber-500/10 text-amber-400",
@@ -16,6 +26,8 @@ type DocumentCardProps = {
   document: Document;
   onDelete: (id: number) => Promise<void>;
   onReprocess: (id: number) => Promise<void>;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 };
 
 function formatBytes(bytes: number | null): string {
@@ -31,11 +43,14 @@ export default function DocumentCard({
   document,
   onDelete,
   onReprocess,
+  isSelected = false,
+  onToggleSelect,
 }: DocumentCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReprocessing, setIsReprocessing] = useState(false);
 
-  const handleDelete = async () => {
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (confirm(`Are you sure you want to delete "${document.title}"?`)) {
       setIsDeleting(true);
       try {
@@ -46,7 +61,8 @@ export default function DocumentCard({
     }
   };
 
-  const handleReprocess = async () => {
+  const handleReprocess = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     setIsReprocessing(true);
     try {
       await onReprocess(document.id);
@@ -55,19 +71,46 @@ export default function DocumentCard({
     }
   };
 
-  const isWorking = document.processing_status === "processing" || document.processing_status === "queued" || isReprocessing;
+  const isWorking =
+    document.processing_status === "processing" ||
+    document.processing_status === "queued" ||
+    isReprocessing;
 
   return (
-    <article className="group relative rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-5 backdrop-blur-md transition-all duration-300 hover:border-zinc-700/80 hover:bg-zinc-900/20">
-
-      {/* Top row */}
+    <article
+      onClick={onToggleSelect}
+      className={`group relative cursor-pointer rounded-xl border p-5 backdrop-blur-md transition-all duration-300 ${
+        isSelected
+          ? "border-purple-500/60 bg-purple-950/20 shadow-lg shadow-purple-950/20 ring-1 ring-purple-500/40"
+          : "border-zinc-800/80 bg-zinc-950/40 hover:border-zinc-700/90 hover:bg-zinc-900/30"
+      }`}
+    >
+      {/* Top row with Checkbox and Details */}
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <div className="mt-1 rounded-lg bg-zinc-900 p-2 text-zinc-400 group-hover:text-white transition-colors duration-300">
+        <div className="flex items-start gap-3.5">
+          {/* Custom Styled Checkbox */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelect?.();
+            }}
+            className="mt-1 text-zinc-500 hover:text-purple-400 focus:outline-none transition-colors"
+          >
+            {isSelected ? (
+              <CheckSquare className="h-5 w-5 text-purple-400 fill-purple-400/20" />
+            ) : (
+              <Square className="h-5 w-5 text-zinc-600 group-hover:text-zinc-400" />
+            )}
+          </button>
+
+          <div className="mt-0.5 rounded-lg bg-zinc-900 p-2 text-zinc-400 group-hover:text-white transition-colors duration-300">
             <FileText size={18} />
           </div>
           <div>
-            <h2 className="text-base font-bold text-zinc-100 group-hover:text-white">{document.title}</h2>
+            <h2 className="text-base font-bold text-zinc-100 group-hover:text-white transition-colors">
+              {document.title}
+            </h2>
             <p className="text-xs text-zinc-500 mt-0.5">
               Added on {new Date(document.created_at).toLocaleDateString()}
             </p>
@@ -93,15 +136,8 @@ export default function DocumentCard({
             <span className="animate-pulse">Processing...</span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-900">
-            <div className="h-full rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 animate-[loading_1.5s_infinite] w-2/3"></div>
+            <div className="h-full rounded-full bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 animate-[loading_1.5s_infinite] w-2/3" />
           </div>
-          {/* Custom style mapping for standard tailwind animation fallback */}
-          <style jsx>{`
-            @keyframes loading {
-              0% { transform: translateX(-100%); }
-              100% { transform: translateX(200%); }
-            }
-          `}</style>
         </div>
       )}
 
@@ -121,7 +157,7 @@ export default function DocumentCard({
       )}
 
       {/* Metadata Grid */}
-      <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3 border-t border-zinc-900 pt-4 text-xs text-zinc-400">
+      <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3 border-t border-zinc-900/80 pt-4 text-xs text-zinc-400">
         <div className="flex items-center gap-1.5">
           <HardDrive size={13} className="text-zinc-600" />
           <span>Size: <strong className="text-zinc-300">{formatBytes(document.file_size)}</strong></span>

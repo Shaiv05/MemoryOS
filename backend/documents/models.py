@@ -1,6 +1,14 @@
 from django.conf import settings
 from django.db import models
-from pgvector.django import HnswIndex, VectorField
+
+try:
+    from pgvector.django import HnswIndex, VectorField
+except ImportError:
+    VectorField = None
+    HnswIndex = None
+
+_USING_POSTGRES = "postgres" in settings.DATABASES.get("default", {}).get("ENGINE", "")
+
 
 
 
@@ -141,11 +149,17 @@ class DocumentChunk(models.Model):
 
     metadata = models.JSONField(default=dict, blank=True)
 
-    embedding = VectorField(
-        dimensions=384,
-        null=True,
-        blank=True,
-    )
+    if _USING_POSTGRES and VectorField is not None:
+        embedding = VectorField(
+            dimensions=384,
+            null=True,
+            blank=True,
+        )
+    else:
+        embedding = models.JSONField(
+            null=True,
+            blank=True,
+        )
 
     created_at = models.DateTimeField(
         auto_now_add=True
@@ -174,7 +188,7 @@ class DocumentChunk(models.Model):
         indexes = [
             models.Index(fields=["document", "chunk_index"], name="chunk_document_order_idx"),
         ]
-        if "postgres" in getattr(settings, "DATABASES", {}).get("default", {}).get("ENGINE", ""):
+        if _USING_POSTGRES and HnswIndex is not None:
             indexes.append(
                 HnswIndex(
                     name="doc_chunk_embedding_hnsw",

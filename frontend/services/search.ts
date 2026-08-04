@@ -24,7 +24,19 @@ export const getApiErrorMessage = (error: unknown, fallback: string) => {
   );
 };
 
-export const searchDocuments = async ({ query, limit = 8 }: SearchRequest) => {
-  const res = await api.post<SearchResult[]>("/search/", { query, limit });
+export const searchDocuments = async ({
+  query,
+  limit = 10,
+  min_score,
+  file_type,
+  document_id,
+}: SearchRequest) => {
+  const res = await api.post<SearchResult[]>("/search/", {
+    query,
+    limit,
+    min_score,
+    file_type,
+    document_id,
+  });
   return res.data;
 };

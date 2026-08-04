@@ -14,12 +14,25 @@ export type RelationshipType =
   | "references"
   | "related_to";
 
+export interface SourceDocumentSummary {
+  id: number;
+  title: string;
+  file_type?: string;
+}
+
+export interface NoteSummary {
+  id: number;
+  title: string;
+}
+
 export interface GraphNode {
   id: number;
   title: string;
   node_type: NodeType;
   description: string;
   metadata: Record<string, unknown>;
+  source_documents?: SourceDocumentSummary[];
+  notes?: NoteSummary[];
   created_at: string;
   updated_at: string;
 }
@@ -42,5 +55,6 @@ export interface GraphData {
 }
 
 export interface NodeDetail extends GraphNode {
-  source_documents: { id: number; title: string }[];
+  source_documents: SourceDocumentSummary[];
+  notes?: NoteSummary[];
 }

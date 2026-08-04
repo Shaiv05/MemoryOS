@@ -20,11 +20,43 @@ ALLOWED_HOSTS = os.getenv(
 ).split(",")
 
 
+def get_database_config():
+    default_sqlite = {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": str(BASE_DIR / "db.sqlite3"),
+    }
+
+    database_url = os.getenv("DATABASE_URL", "").strip()
+    if not database_url:
+        return default_sqlite
+
+    if not database_url.startswith(("postgres://", "postgresql://")):
+        try:
+            return dj_database_url.parse(database_url, conn_max_age=600)
+        except Exception as exc:
+            logger.warning("DATABASE_URL parse failed: %s", exc)
+            return default_sqlite
+
+    try:
+        return dj_database_url.parse(database_url, conn_max_age=600)
+    except Exception as exc:
+        logger.warning(
+            "Postgres database unavailable for DATABASE_URL %s; falling back to SQLite. Error: %s",
+            database_url,
+            exc,
+        )
+        return default_sqlite
+
+
+DATABASES = {"default": get_database_config()}
+
+_USING_POSTGRES = "postgres" in DATABASES["default"].get("ENGINE", "")
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
-    "django.contrib.postgres",
+    *(["django.contrib.postgres"] if _USING_POSTGRES else []),
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
@@ -32,7 +64,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
-    "pgvector",
+    *(["pgvector"] if _USING_POSTGRES else []),
     "accounts",
     "chat",
     "dashboard",
@@ -75,35 +107,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-def get_database_config():
-    default_sqlite = {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": str(BASE_DIR / "db.sqlite3"),
-    }
-
-    database_url = os.getenv("DATABASE_URL", "").strip()
-    if not database_url:
-        return default_sqlite
-
-    if not database_url.startswith(("postgres://", "postgresql://")):
-        return dj_database_url.parse(database_url, conn_max_age=600)
-
-    try:
-        return dj_database_url.parse(database_url, conn_max_age=600)
-    except Exception:
-        return default_sqlite
-        return dj_database_url.parse(database_url, conn_max_age=600)
-    except Exception as exc:
-        logger.warning(
-            "Postgres database unavailable for DATABASE_URL %s; falling back to SQLite. Error: %s",
-            database_url,
-            exc,
-        )
-        return default_sqlite
-
-
-DATABASES = {"default": get_database_config()}
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
@@ -132,8 +135,8 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 MAX_DOCUMENT_UPLOAD_SIZE = int(os.getenv("MAX_DOCUMENT_UPLOAD_SIZE", str(10 * 1024 * 1024)))
-DOCUMENT_CHUNK_SIZE = int(os.getenv("DOCUMENT_CHUNK_SIZE", "250"))
-DOCUMENT_CHUNK_OVERLAP = int(os.getenv("DOCUMENT_CHUNK_OVERLAP", "50"))
+DOCUMENT_CHUNK_SIZE = int(os.getenv("DOCUMENT_CHUNK_SIZE", "500"))
+DOCUMENT_CHUNK_OVERLAP = int(os.getenv("DOCUMENT_CHUNK_OVERLAP", "100"))
 
 
 EMBEDDING_MODEL_NAME = os.getenv(
@@ -141,6 +144,15 @@ EMBEDDING_MODEL_NAME = os.getenv(
     "sentence-transformers/all-MiniLM-L6-v2",
 )
 EMBEDDING_DIMENSIONS = int(os.getenv("EMBEDDING_DIMENSIONS", "384"))
+
+# RAG Pipeline Configuration
+RAG_DEBUG = os.getenv("RAG_DEBUG", "False") == "True"
+RAG_VALIDATION_ENABLED = os.getenv("RAG_VALIDATION_ENABLED", "True") == "True"
+RAG_MIN_CHUNK_TOKENS = int(os.getenv("RAG_MIN_CHUNK_TOKENS", "20"))
+RAG_MAX_CHUNK_TOKENS = int(os.getenv("RAG_MAX_CHUNK_TOKENS", "700"))
+RAG_RERANKING_ENABLED = os.getenv("RAG_RERANKING_ENABLED", "True") == "True"
+RAG_TOP_K_RETRIEVAL = int(os.getenv("RAG_TOP_K_RETRIEVAL", "10"))
+RAG_FINAL_CONTEXT_CHUNKS = int(os.getenv("RAG_FINAL_CONTEXT_CHUNKS", "5"))
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
