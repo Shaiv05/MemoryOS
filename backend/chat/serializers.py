@@ -12,6 +12,7 @@ class ChatRequestSerializer(serializers.Serializer):
         max_length=8000,
     )
     conversation_id = serializers.IntegerField(required=False, min_value=1)
+    debug = serializers.BooleanField(required=False, default=False)
 
 
 class ChatSourceSerializer(serializers.Serializer):
@@ -33,6 +34,7 @@ class ChatResponseSerializer(serializers.Serializer):
     message_id = serializers.IntegerField()
     answer = serializers.CharField()
     sources = ChatSourceSerializer(many=True)
+    debug = serializers.DictField(required=False)
 
 
 class ConversationCreateSerializer(serializers.Serializer):

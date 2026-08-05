@@ -39,24 +39,47 @@ export default function DocumentsPage() {
     if (!token) return;
 
     let ignore = false;
-    getDocuments()
-      .then((data) => {
-        if (!ignore) {
-          setDocuments(data);
-          setLoading(false);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!ignore) {
-          setError(getErrorMessage(err));
-          setLoading(false);
-        }
-      });
+    const fetchDocs = () => {
+      getDocuments()
+        .then((data) => {
+          if (!ignore) {
+            setDocuments(data);
+            setLoading(false);
+          }
+        })
+        .catch((err: unknown) => {
+          if (!ignore) {
+            setError(getErrorMessage(err));
+            setLoading(false);
+          }
+        });
+    };
+
+    fetchDocs();
 
     return () => {
       ignore = true;
     };
   }, [token, refreshKey]);
+
+  // Auto-polling when background document processing is active
+  useEffect(() => {
+    if (!token) return;
+
+    const hasPendingDocs = documents.some(
+      (doc) => doc.processing_status === "queued" || doc.processing_status === "processing"
+    );
+
+    if (!hasPendingDocs) return;
+
+    const interval = setInterval(() => {
+      getDocuments()
+        .then((data) => setDocuments(data))
+        .catch(() => {});
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [token, documents]);
 
   const refreshDocuments = () => {
     setLoading(true);

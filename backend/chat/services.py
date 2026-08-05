@@ -144,15 +144,17 @@ def generate_assistant_response(
     start_time = time.time()
     debug_requested = return_debug or getattr(settings, "RAG_DEBUG", False)
 
+    max_chunks = getattr(settings, "RAG_FINAL_CONTEXT_CHUNKS", 3)
+
     # 1. Retrieve hybrid chunks with optional debug metrics
     retrieval_service = DocumentRetrievalService()
     if debug_requested:
         retrieval_results, debug_info = retrieval_service.retrieve(
-            user, user_message.content, limit=MAX_CONTEXT_CHUNKS, return_debug=True
+            user, user_message.content, limit=max_chunks, return_debug=True
         )
     else:
         retrieval_results = retrieval_service.retrieve(
-            user, user_message.content, limit=MAX_CONTEXT_CHUNKS
+            user, user_message.content, limit=max_chunks
         )
         debug_info = None
 
@@ -204,17 +206,25 @@ def generate_assistant_response(
         "sources": serialize_message_sources(assistant_message),
     }
 
-    # Expose Phase 16 Debug Information if enabled
-    if debug_requested and debug_info:
+    # Developer Debug Mode details
+    if debug_requested:
+        selected_chunk_ids = [s.chunk_id for s in built_context.sources]
+        similarity_scores = {s.chunk_id: s.relevance_score for s in built_context.sources}
+        source_pages = list(set([s.page_number for s in built_context.sources if s.page_number is not None]))
+
         result["debug"] = {
             "query": user_message.content,
-            "vector_results": debug_info.vector_results_count,
-            "keyword_results": debug_info.keyword_results_count,
-            "retrieval_time_ms": debug_info.retrieval_time_ms,
+            "retrieved_chunk_ids": selected_chunk_ids,
+            "similarity_scores": similarity_scores,
+            "selected_chunks_count": built_context.source_count,
+            "context_token_count": built_context.total_tokens_approx,
+            "prompt_sent": built_context.prompt_context[:1000],
+            "source_pages": source_pages,
+            "vector_results_count": debug_info.vector_results_count if debug_info else 0,
+            "keyword_results_count": debug_info.keyword_results_count if debug_info else 0,
+            "retrieval_time_ms": debug_info.retrieval_time_ms if debug_info else 0.0,
             "total_time_ms": elapsed_ms,
-            "context_tokens_approx": built_context.total_tokens_approx,
-            "context_sources_used": built_context.source_count,
-            "candidates": debug_info.candidate_details,
+            "candidates": debug_info.candidate_details if debug_info else [],
         }
 
     return result

@@ -93,7 +93,7 @@ class DocumentRetrievalService:
         user,
         query: str,
         limit: int = 10,
-        min_score: float = 0.15,
+        min_score: Optional[float] = None,
         document_id: Optional[int] = None,
         file_type: Optional[str] = None,
         title_filter: Optional[str] = None,
@@ -109,6 +109,9 @@ class DocumentRetrievalService:
         query = (query or "").strip()
         if not query:
             return ([], DebugInfo()) if return_debug else []
+
+        if min_score is None:
+            min_score = getattr(settings, "RAG_MIN_RETRIEVAL_SCORE", 0.30)
 
         debug = DebugInfo(query=query)
 
@@ -213,16 +216,6 @@ class DocumentRetrievalService:
             else:
                 final_score = k_score
 
-            # Document title match boost
-            query_lower = query.lower()
-            title_lower = entry["chunk"].document.title.lower()
-            if query_lower in title_lower or any(
-                term in title_lower
-                for term in query_lower.split()
-                if len(term) > 3
-            ):
-                final_score = min(1.0, final_score * 1.1)
-
             if final_score >= min_score:
                 results.append(
                     RetrievalResult(
@@ -246,6 +239,19 @@ class DocumentRetrievalService:
                 })
 
         results.sort(key=lambda r: r.relevance_score, reverse=True)
+
+        # ─── Step 4: Relevance Score Drop-off Cutoff ────────────────────
+        if results:
+            top_score = results[0].relevance_score
+            cutoff_ratio = getattr(settings, "RAG_SCORE_DROP_CUTOFF", 0.40)
+            filtered_results: list[RetrievalResult] = []
+            for r in results:
+                if (top_score - r.relevance_score) / top_score <= cutoff_ratio:
+                    filtered_results.append(r)
+                else:
+                    break
+            results = filtered_results
+
         results = results[:limit]
 
         elapsed = time.time() - start_time
@@ -299,7 +305,7 @@ class DocumentRetrievalService:
         scored: list[tuple[DocumentChunk, float]] = []
         for chunk in candidates:
             score = self._compute_keyword_score(query, query_terms, chunk)
-            if score >= 0.1:
+            if score >= 0.2:
                 scored.append((chunk, score))
 
         scored.sort(key=lambda x: x[1], reverse=True)
@@ -354,8 +360,8 @@ class DocumentRetrievalService:
 
         match_ratio = matches / len(query_terms)
 
-        # Require at least 33% term match for multi-term queries
-        if match_ratio < 0.33 and len(query_terms) > 1:
+        # Require at least 50% term match for multi-term queries
+        if match_ratio < 0.50 and len(query_terms) > 1:
             return 0.0
 
         # Normalize to 0-1 range

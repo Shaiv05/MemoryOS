@@ -111,10 +111,16 @@ function renderBlock(block: string, index: number) {
   }
   if (/^[-*] /m.test(block)) {
     return (
-      <ul key={index} className="my-3 list-disc space-y-1 pl-5">
-        {block.split("\n").map((line, itemIndex) => (
-          <li key={itemIndex}>{renderInline(line.replace(/^[-*] /, ""))}</li>
-        ))}
+      <ul key={index} className="my-3 space-y-2 pl-2">
+        {block.split("\n").map((line, itemIndex) => {
+          const content = line.replace(/^[-*] /, "");
+          return (
+            <li key={itemIndex} className="flex items-start gap-2 text-zinc-200">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-purple-400" />
+              <span className="flex-1 leading-relaxed">{renderInline(content)}</span>
+            </li>
+          );
+        })}
       </ul>
     );
   }

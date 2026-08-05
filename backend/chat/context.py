@@ -10,9 +10,11 @@ Enforces strict token efficiency:
 from dataclasses import dataclass
 from typing import Optional
 
+from django.conf import settings
+
 from documents.services.retrieval import RetrievalResult
 
-MAX_CONTEXT_CHARS = 10000  # ~2,500 tokens max to allow complete QA answer blocks
+MAX_CONTEXT_CHARS = 6000  # ~1,500 tokens max
 MAX_HISTORY_CHARS = 4000  # ~1,000 tokens max for conversation history
 
 
@@ -60,14 +62,18 @@ class ContextBuilder:
         self,
         retrieval_results: list[RetrievalResult],
         memories: list | None = None,
-        max_chars: int = MAX_CONTEXT_CHARS,
+        max_chars: int | None = None,
     ) -> BuiltContext:
         """
         Build compressed, deduplicated prompt context from hybrid retrieval results.
+        Merges adjacent chunks from the same document when appropriate.
         """
-        # Sort by relevance score descending
+        if max_chars is None:
+            max_chars = getattr(settings, "RAG_MAX_CONTEXT_TOKENS", 1500) * 4
+
+        # Filter out invalid or zero-score results
         ordered_results = sorted(
-            retrieval_results,
+            [r for r in retrieval_results if r.relevance_score > 0],
             key=lambda r: r.relevance_score,
             reverse=True,
         )
@@ -87,51 +93,79 @@ class ContextBuilder:
                 blocks.append(mem_header)
                 used_chars += len(mem_header)
 
-        # ─── 2. Compress & Deduplicate Retrieval Context ────────────────────
-        for idx, result in enumerate(ordered_results):
+        # ─── 2. Group Adjacent Chunks by Document ────────────────────────────
+        # Merge consecutive adjacent chunks (e.g. chunk 1 and chunk 2 from same doc)
+        merged_candidates: list[dict] = []
+        for result in ordered_results:
             chunk = result.chunk
             content = (chunk.content or "").strip()
             if not content:
                 continue
 
-            # Check for redundancy with already included chunks (>65% Jaccard word overlap)
+            # Check if adjacent to the previous candidate in the same document
+            if (
+                merged_candidates
+                and merged_candidates[-1]["document_id"] == chunk.document_id
+                and abs(merged_candidates[-1]["chunk_index"] - chunk.chunk_index) == 1
+            ):
+                prev = merged_candidates[-1]
+                # Merge content avoiding exact overlap
+                prev["content"] = f"{prev['content']}\n\n[...Adjacent Section...]\n\n{content}"
+                prev["relevance_score"] = max(prev["relevance_score"], result.relevance_score)
+                prev["chunk_ids"].append(chunk.id)
+            else:
+                metadata = chunk.metadata or {}
+                heading = metadata.get("heading") or metadata.get("section") or ""
+                merged_candidates.append({
+                    "chunk": chunk,
+                    "document_id": chunk.document_id,
+                    "document_title": chunk.document.title,
+                    "chunk_index": chunk.chunk_index,
+                    "chunk_ids": [chunk.id],
+                    "page_number": self._extract_page_number(metadata),
+                    "section_heading": heading,
+                    "relevance_score": result.relevance_score,
+                    "content": content,
+                })
+
+        # ─── 3. Compress & Deduplicate Retrieval Context ────────────────────
+        for cand in merged_candidates:
+            content = cand["content"]
+
+            # Check for redundancy (>50% Jaccard word overlap)
             is_redundant = any(
-                _text_similarity_ratio(content, existing) > 0.65
+                _text_similarity_ratio(content, existing) > 0.50
                 for existing in included_contents
             )
             if is_redundant:
                 continue
 
-            metadata = chunk.metadata or {}
-            page_number = self._extract_page_number(metadata)
-            heading = metadata.get("heading") or metadata.get("section") or ""
             label = f"S{len(sources) + 1}"
 
             # Format rich citation header
-            header_parts = [f"[{label}] Document: {chunk.document.title}"]
-            if page_number is not None:
-                header_parts.append(f"Page: {page_number}")
-            if heading:
-                header_parts.append(f"Section: {heading}")
-            header_parts.append(f"Relevance: {result.relevance_score:.2f}")
+            header_parts = [f"[{label}] Document: {cand['document_title']}"]
+            if cand["page_number"] is not None:
+                header_parts.append(f"Page: {cand['page_number']}")
+            if cand["section_heading"]:
+                header_parts.append(f"Section: {cand['section_heading']}")
+            header_parts.append(f"Relevance: {cand['relevance_score']:.2f}")
 
             header_str = " | ".join(header_parts)
             block = f"{header_str}\n{content}"
 
             if used_chars + len(block) > max_chars and len(sources) >= 1:
-                # Always allow at least 1 top candidate chunk, then enforce budget
                 break
 
             sources.append(
                 ContextSource(
                     label=label,
-                    chunk_id=chunk.id,
-                    chunk_index=chunk.chunk_index,
-                    document_id=chunk.document_id,
-                    document_title=chunk.document.title,
-                    page_number=page_number,
-                    section_heading=heading,
-                    relevance_score=result.relevance_score,
+                    chunk_id=cand["chunk_ids"][0],
+                    chunk_index=cand["chunk_index"],
+                    document_id=cand["document_id"],
+                    document_title=cand["document_title"],
+                    page_number=cand["page_number"],
+                    section_heading=cand["section_heading"],
+                    relevance_score=cand["relevance_score"],
                     content=truncate_text(content, 1800),
                 )
             )

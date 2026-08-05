@@ -31,8 +31,9 @@ class ChatMessageView(APIView):
 
         message = request_serializer.validated_data["message"]
         conversation_id = request_serializer.validated_data.get("conversation_id")
+        return_debug = request.query_params.get("debug", "false").lower() == "true" or request_serializer.validated_data.get("debug", False)
 
-        result = chat_with_documents(request.user, message, conversation_id)
+        result = chat_with_documents(request.user, message, conversation_id, return_debug=return_debug)
         response_serializer = ChatResponseSerializer(result)
         return Response(response_serializer.data)
 

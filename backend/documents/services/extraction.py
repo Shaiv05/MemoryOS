@@ -182,28 +182,31 @@ def merge_paragraph_lines(text: str) -> str:
 
 def fix_spaced_characters(text: str) -> str:
     """
-    Fixes character kerning artifacts from PDFs where letters are separated by spaces
-    (e.g., 'd a t a   s t r u c t u r e' -> 'data structure').
+    Fixes character kerning artifacts from PDFs where individual letters are separated by single spaces
+    (e.g., 'd a t a   s t r u c t u r e' -> 'data structure', 'a d a t a' -> 'a data').
     """
     if not text:
         return ""
 
-    def _merge_match(match):
+    # Match sequences where letters are separated by spaces, e.g. "a d a t a s t r u c t u r e"
+    def _fix_kerning_block(match):
         raw = match.group(0)
-        # Split on double space to separate words
-        words = [w for w in re.split(r"\s{2,}", raw) if w.strip()]
-        merged_words = []
-        for word in words:
-            chars = word.replace(" ", "")
-            if len(chars) > 1:
-                merged_words.append(chars)
+        # Split on double spaces or newlines which represent real word/line breaks
+        tokens = re.split(r"(\s{2,}|\n)", raw)
+        fixed_tokens = []
+        for tok in tokens:
+            if tok.strip() and not re.match(r"^\s+$", tok):
+                # Remove single spaces between single letters
+                cleaned = re.sub(r"(?<=\b[a-zA-Z])\s+(?=[a-zA-Z]\b)", "", tok)
+                fixed_tokens.append(cleaned)
             else:
-                merged_words.append(word.strip())
-        return " ".join(w for w in merged_words if w)
+                fixed_tokens.append(tok)
+        return "".join(fixed_tokens)
 
-    # Pattern: 3 or more single letters separated by single spaces
+    # Pattern matching 3 or more single-letter spaced tokens
     pattern = r"\b(?:[a-zA-Z]\s+){2,}[a-zA-Z]\b"
-    return re.sub(pattern, _merge_match, text)
+    text = re.sub(pattern, _fix_kerning_block, text)
+    return text
 
 
 def strip_explicit_header_footer_patterns(text: str) -> str:
@@ -246,6 +249,7 @@ def normalize_text(text: str) -> str:
     if not text:
         return ""
     text = clean_raw_characters(text)
+    text = fix_spaced_characters(text)
     text = strip_explicit_header_footer_patterns(text)
     text = remove_ocr_garbage(text)
     text = dehyphenate_text(text)

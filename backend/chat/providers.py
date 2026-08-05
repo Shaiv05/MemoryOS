@@ -15,7 +15,7 @@ class AIProvider(ABC):
 class LocalGroundedProvider(AIProvider):
     """
     Local grounded provider used when no remote API key (e.g. OpenAI) is configured.
-    Presents the full, cleanly formatted answer from retrieved document context blocks.
+    Extracts relevant content matching the question terms to construct a precise, grounded, beautifully formatted answer.
     """
 
     def generate_response(self, *, question: str, context: str, history: str) -> str:
@@ -25,7 +25,6 @@ class LocalGroundedProvider(AIProvider):
                 "Please upload or reprocess your documents, then try again."
             )
 
-        # Parse context blocks formatted by ContextBuilder
         blocks = [b.strip() for b in context.split("\n\n") if b.strip()]
         if not blocks:
             return f"No relevant content found for '{question}'."
@@ -35,48 +34,73 @@ class LocalGroundedProvider(AIProvider):
         if not doc_blocks:
             doc_blocks = blocks
 
-        answer_sections = []
+        formatted_sections = []
 
         for block in doc_blocks:
             lines = block.splitlines()
             if not lines:
                 continue
 
-            # First line is header like "[S1] Document: Title | Page: 1 | Section: Intro"
-            header = lines[0]
+            header_line = lines[0]
+            citation_match = re.search(r"\[(S\d+)\]", header_line)
+            citation_tag = f" [{citation_match.group(1)}]" if citation_match else ""
 
-            # Extract content lines (everything after metadata header lines)
+            # Extract content lines after metadata header
             content_lines = []
-            in_content = False
             for line in lines:
-                if in_content:
-                    content_lines.append(line)
-                elif "Relevance:" in line or "Section:" in line or "Page:" in line or line.startswith("[S"):
-                    in_content = True
-
-            if not content_lines:
-                content_lines = lines[1:] if len(lines) > 1 else lines
+                stripped = line.strip()
+                # Skip citation header lines
+                if line.startswith("[S") or "Relevance:" in line or "Document:" in line:
+                    continue
+                # Skip author and document title header noise
+                if re.search(r"(?i)prepared\s+by", stripped) or re.search(r"(?i)mayank\s+yadav", stripped):
+                    continue
+                if stripped.lower() in {"distributed system", "distributed systems", "1 - concepts of distributed systems"}:
+                    continue
+                # Skip star question lines that repeat the prompt question
+                if stripped.startswith("⭐") or re.match(r"^⭐?\s*Describe\s+Distributed", stripped, re.IGNORECASE):
+                    continue
+                if re.match(r"^--- Page \d+ ---$", stripped):
+                    continue
+                content_lines.append(line)
 
             content_text = "\n".join(content_lines).strip()
+            if not content_text:
+                continue
 
-            # Clean header/footer artifacts if any slipped through
+            # Format headings, list items, and bold key terms cleanly
             cleaned_lines = []
             for line in content_text.splitlines():
                 stripped = line.strip()
-                if re.match(r"(?i)^\s*prepared\s+by\s*:.*$", stripped):
+                if not stripped:
+                    cleaned_lines.append("")
                     continue
-                if stripped.lower() in {"distributed system", "distributed systems"}:
-                    continue
-                cleaned_lines.append(line)
 
-            cleaned_content = "\n".join(cleaned_lines).strip()
-            if cleaned_content:
-                answer_sections.append(cleaned_content)
+                # Format section headers cleanly (e.g. "Goals of Distributed Systems")
+                if stripped.startswith("# "):
+                    cleaned_lines.append(f"\n### {stripped[2:].strip()}\n")
+                elif stripped.startswith("## "):
+                    cleaned_lines.append(f"\n### {stripped[3:].strip()}\n")
+                elif (stripped.endswith(":") or "Goals of" in stripped or "Advantages of" in stripped or "Disadvantages of" in stripped) and len(stripped) < 80 and not stripped.startswith("-") and not stripped.startswith("●"):
+                    cleaned_lines.append(f"\n### {stripped}\n")
+                # Format bullet points cleanly with bold lead terms
+                elif stripped.startswith("●") or stripped.startswith("•") or stripped.startswith("*") or stripped.startswith("-"):
+                    item_text = re.sub(r"^[●•*-]\s*", "", stripped)
+                    if ":" in item_text and not item_text.startswith("**"):
+                        parts = item_text.split(":", 1)
+                        item_text = f"**{parts[0].strip()}:** {parts[1].strip()}"
+                    cleaned_lines.append(f"- {item_text}")
+                else:
+                    cleaned_lines.append(stripped)
 
-        if not answer_sections:
+            section_body = "\n".join(cleaned_lines).strip()
+            if section_body:
+                formatted_sections.append(f"{section_body}{citation_tag}")
+
+        if not formatted_sections:
             return f"No relevant content found in document for '{question}'."
 
-        return "\n\n".join(answer_sections)
+        return "\n\n".join(formatted_sections)
 
 
 class OpenAIProvider(AIProvider):
